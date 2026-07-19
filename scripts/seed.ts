@@ -217,8 +217,9 @@ async function main() {
 
     const chunks = chunkText(doc.content);
     const embeddings = await openai.embeddings.create({
-      model: "text-embedding-3-small",
+      model: process.env.EMBEDDING_MODEL ?? "text-embedding-3-small",
       input: chunks,
+      dimensions: 1536,
     });
 
     const rows = chunks.map((content, i) => ({

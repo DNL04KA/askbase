@@ -4,6 +4,7 @@ import {
   CHAT_MODEL,
   embedText,
   getOpenAI,
+  isCustomProvider,
   type RagSource,
 } from "@/lib/ai";
 import { recordMessageUsage } from "@/lib/plan-limits";
@@ -118,7 +119,8 @@ export async function runChat({
   const completion = await openai.chat.completions.create({
     model: CHAT_MODEL,
     stream: true,
-    stream_options: { include_usage: true },
+    // stream_options is OpenAI-specific; compat endpoints (Gemini) reject it
+    ...(isCustomProvider() ? {} : { stream_options: { include_usage: true } }),
     temperature: 0.3,
     messages: [
       {
