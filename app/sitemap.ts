@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
+import { getSiteUrl } from "@/lib/env";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const base = getSiteUrl();
   return [
     { url: base, changeFrequency: "weekly", priority: 1 },
     { url: `${base}/signup`, changeFrequency: "monthly", priority: 0.8 },
