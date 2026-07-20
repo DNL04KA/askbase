@@ -186,6 +186,34 @@ export async function changePlanMock(
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Pulls the customer's current subscription from Stripe and applies it.
+ * Called when the billing page loads, so the plan stays correct even
+ * without webhooks (local dev, missed events). No-op in mock mode.
+ */
+export async function syncFromStripe(org: Organization): Promise<void> {
+  if (getBillingProvider() !== "stripe" || !org.stripe_customer_id) return;
+  const stripe = getStripe();
+  const subs = await stripe.subscriptions.list({
+    customer: org.stripe_customer_id,
+    status: "all",
+    limit: 10,
+  });
+  if (subs.data.length === 0) return;
+
+  const best =
+    subs.data.find((s) => s.status === "active" || s.status === "trialing") ??
+    subs.data[0];
+  const periodEnd = best.items.data[0]?.current_period_end;
+  await syncSubscriptionState({
+    orgId: org.id,
+    plan: best.metadata?.plan ?? null,
+    stripeSubscriptionId: best.id,
+    status: best.status,
+    currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
+  });
+}
+
 /** Applies a subscription state coming from a Stripe webhook. */
 export async function syncSubscriptionState(params: {
   orgId: string;
