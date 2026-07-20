@@ -69,7 +69,7 @@ function PlanCardsInner({
 
   return (
     <div>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 pt-3 md:grid-cols-3">
         {Object.values(PLANS).map((plan) => {
           const isCurrent = plan.id === currentPlan;
           const isPro = plan.id === "pro";
@@ -77,7 +77,7 @@ function PlanCardsInner({
             <Card
               key={plan.id}
               className={cn(
-                "relative",
+                "relative overflow-visible",
                 isPro && "border-primary/50",
                 isCurrent && "bg-primary/5"
               )}
