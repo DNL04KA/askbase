@@ -3,6 +3,19 @@ import OpenAI from "openai";
 // Models are overridable via env so the app can run on any
 // OpenAI-compatible provider (Gemini compat endpoint, proxies, etc.).
 export const CHAT_MODEL = process.env.CHAT_MODEL ?? "gpt-4o-mini";
+
+/**
+ * Primary model plus fallbacks tried on 429/503 (free-tier Gemini models
+ * get overloaded regularly). Override via CHAT_MODEL_FALLBACKS (comma-sep).
+ */
+export function getChatModels(): string[] {
+  const fallbacks = process.env.CHAT_MODEL_FALLBACKS
+    ? process.env.CHAT_MODEL_FALLBACKS.split(",").map((m) => m.trim())
+    : isCustomProvider()
+      ? ["gemini-3.1-flash-lite", "gemini-3-flash-preview"]
+      : [];
+  return [CHAT_MODEL, ...fallbacks.filter((m) => m && m !== CHAT_MODEL)];
+}
 export const EMBEDDING_MODEL =
   process.env.EMBEDDING_MODEL ?? "text-embedding-3-small";
 export const EMBEDDING_DIMENSIONS = 1536;

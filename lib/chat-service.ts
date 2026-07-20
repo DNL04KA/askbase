@@ -1,8 +1,9 @@
+import type { ChatCompletionChunk } from "openai/resources/chat/completions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   buildRagSystemPrompt,
-  CHAT_MODEL,
   embedText,
+  getChatModels,
   getOpenAI,
   isCustomProvider,
   type RagSource,
@@ -116,21 +117,49 @@ export async function runChat({
 
   // 5. Stream the completion
   const openai = getOpenAI();
-  const completion = await openai.chat.completions.create({
-    model: CHAT_MODEL,
-    stream: true,
-    // stream_options is OpenAI-specific; compat endpoints (Gemini) reject it
-    ...(isCustomProvider() ? {} : { stream_options: { include_usage: true } }),
-    temperature: 0.3,
-    messages: [
-      {
-        role: "system",
-        content: buildRagSystemPrompt(chatbot.system_prompt, contextChunks),
-      },
-      ...historyMessages,
-      { role: "user", content: message },
-    ],
-  });
+  const chatMessages = [
+    {
+      role: "system" as const,
+      content: buildRagSystemPrompt(chatbot.system_prompt, contextChunks),
+    },
+    ...historyMessages,
+    { role: "user" as const, content: message },
+  ];
+
+  // Try the primary model, falling back on overload/rate-limit errors.
+  const models = getChatModels();
+  let completion: AsyncIterable<ChatCompletionChunk> | null = null;
+  {
+    let lastError: unknown = null;
+    for (const model of models) {
+      try {
+        completion = await openai.chat.completions.create(
+          {
+            model,
+            stream: true,
+            // stream_options is OpenAI-specific; compat endpoints (Gemini)
+            // reject it. On Gemini, disable thinking: RAG extraction doesn't
+            // need it and it adds seconds of latency before the first token.
+            ...(isCustomProvider()
+              ? { reasoning_effort: "none" as "low" }
+              : { stream_options: { include_usage: true } }),
+            temperature: 0.3,
+            messages: chatMessages,
+          },
+          // Skip SDK-internal retries: our loop switches to a fallback model
+          // immediately instead of hammering an overloaded one with backoff.
+          { maxRetries: 0 }
+        );
+        break;
+      } catch (error) {
+        lastError = error;
+        const status = (error as { status?: number })?.status;
+        if (status !== 429 && status !== 503) throw error;
+        console.warn(`Model ${model} unavailable (${status}), trying fallback`);
+      }
+    }
+    if (!completion) throw lastError;
+  }
 
   const encoder = new TextEncoder();
   const orgId = chatbot.org_id;
