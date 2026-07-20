@@ -64,6 +64,10 @@ export function DocumentsTab({
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [dragOver, setDragOver] = useState(false);
   const [pasteOpen, setPasteOpen] = useState(false);
+  const [viewDoc, setViewDoc] = useState<DocumentRow | null>(null);
+  const [viewChunks, setViewChunks] = useState<
+    { chunk_index: number; content: string }[] | null
+  >(null);
   const [pasteTitle, setPasteTitle] = useState("");
   const [pasteText, setPasteText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -175,6 +179,19 @@ export function DocumentsTab({
     } else {
       const data = await res.json().catch(() => ({}));
       toast.error(data.error ?? "Failed to delete");
+    }
+  }
+
+  async function openDocument(doc: DocumentRow) {
+    setViewDoc(doc);
+    setViewChunks(null);
+    const res = await fetch(`/api/documents/${doc.id}`);
+    if (res.ok) {
+      const data = await res.json();
+      setViewChunks(data.chunks ?? []);
+    } else {
+      toast.error("Failed to load document content");
+      setViewChunks([]);
     }
   }
 
@@ -308,12 +325,16 @@ export function DocumentsTab({
                 return (
                   <TableRow key={doc.id}>
                     <TableCell className="max-w-60">
-                      <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => openDocument(doc)}
+                        className="flex max-w-full items-center gap-2 text-left hover:text-primary"
+                        title="View content"
+                      >
                         <FileText className="size-4 shrink-0 text-muted-foreground" />
-                        <span className="truncate font-medium">
+                        <span className="truncate font-medium underline-offset-2 hover:underline">
                           {doc.title}
                         </span>
-                      </div>
+                      </button>
                       {doc.status === "failed" && doc.error_message && (
                         <p className="mt-1 truncate text-xs text-red-400">
                           {doc.error_message}
@@ -368,6 +389,59 @@ export function DocumentsTab({
           </Table>
         </div>
       )}
+
+      {/* Document content viewer */}
+      <Dialog
+        open={viewDoc !== null}
+        onOpenChange={(open) => {
+          if (!open) setViewDoc(null);
+        }}
+      >
+        <DialogContent className="max-h-[80vh] sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="truncate pr-6">
+              {viewDoc?.title}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span>Status: {viewDoc?.status}</span>
+            {viewDoc?.status === "processed" && (
+              <span>{viewDoc?.chunk_count} chunks indexed</span>
+            )}
+            {viewDoc && (
+              <span>
+                Added {new Date(viewDoc.created_at).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+          <div className="max-h-[55vh] overflow-y-auto rounded-lg border border-border/60 bg-background/40 p-4">
+            {viewChunks === null ? (
+              <div className="flex justify-center py-6">
+                <Loader2 className="size-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : viewChunks.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No indexed content yet — process the document first.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {viewChunks.map((c) => (
+                  <div key={c.chunk_index}>
+                    {viewChunks.length > 1 && (
+                      <p className="mb-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                        Chunk {c.chunk_index + 1}
+                      </p>
+                    )}
+                    <p className="text-sm whitespace-pre-wrap text-foreground/90">
+                      {c.content}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
