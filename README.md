@@ -7,7 +7,6 @@ production-shaped MVP — multi-tenant, plan-gated, with real Stripe billing.
 **Repository:** [github.com/DNL04KA/askbase](https://github.com/DNL04KA/askbase)
 
 > **Deploying?** Follow [DEPLOYMENT.md](DEPLOYMENT.md) step by step.
-> Recording the demo? See [docs/DEMO-SCRIPT.md](docs/DEMO-SCRIPT.md).
 
 ---
 
