@@ -63,12 +63,20 @@ export function isStripeConfigured(): boolean {
 }
 
 export function getSiteUrl(): string {
-  if (process.env.SITE_URL) return process.env.SITE_URL;
-  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
-  // On Vercel, fall back to the deployment's own domain automatically
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  const vercelUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : null;
+
+  const configured = process.env.SITE_URL || process.env.NEXT_PUBLIC_APP_URL;
+
+  // Guard against a stale localhost value copied into a deployed env: when we
+  // are on Vercel, never use a localhost URL (it would break Stripe redirects,
+  // OG images, etc.) — prefer the deployment's own domain instead.
+  if (configured && !(vercelUrl && configured.includes("localhost"))) {
+    return configured;
   }
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  if (vercelUrl) return vercelUrl;
   return "http://localhost:3000";
 }
