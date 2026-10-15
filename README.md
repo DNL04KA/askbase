@@ -1,8 +1,10 @@
-# Askbase — Turn Your Docs Into an AI Chatbot
+# Askbase
 
-Upload your company documents, get a RAG-powered AI chatbot: a ChatGPT-like
-chat inside the app **and** an embeddable widget for any website. Built as a
-production-shaped MVP — multi-tenant, plan-gated, with real Stripe billing.
+A multi-tenant SaaS that turns a company's documents into a cited AI chatbot — in-app and as an embeddable widget.
+
+Upload your documents, get a RAG-powered chatbot: a ChatGPT-like chat inside the
+app **and** an embeddable widget for any website. Built as a production-shaped
+MVP — multi-tenant, plan-gated, with real Stripe billing.
 
 **Repository:** [github.com/DNL04KA/askbase](https://github.com/DNL04KA/askbase)
 
@@ -38,7 +40,7 @@ production-shaped MVP — multi-tenant, plan-gated, with real Stripe billing.
 |---|---|
 | Framework | Next.js 16 (App Router, Turbopack, `proxy.ts`) |
 | Data / Auth / Vectors | Supabase (Postgres + pgvector, RLS, Storage, Auth) |
-| AI | Any OpenAI-compatible API — OpenAI or **Google Gemini** (default config), with automatic model fallback on overload |
+| AI | Any OpenAI-compatible API. Defaults to OpenAI (`gpt-4o-mini`, `text-embedding-3-small`); **Google Gemini** works by setting `OPENAI_BASE_URL`. Automatic model fallback on overload |
 | Billing | Stripe (test mode) with provider abstraction (`mock` ⇄ `stripe`) |
 | UI | Tailwind CSS v4 + shadcn/ui (Base UI), Vercel Analytics |
 
@@ -61,6 +63,9 @@ cp .env.example .env.local
 
 Required: the three Supabase keys and an AI key. Two supported AI setups:
 
+**OpenAI (the default):** just set `OPENAI_API_KEY=sk-…` and leave the model
+variables unset.
+
 **Google Gemini (free tier, no card):**
 ```env
 OPENAI_API_KEY=<key from aistudio.google.com>
@@ -68,8 +73,6 @@ OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
 CHAT_MODEL=gemini-3.5-flash
 EMBEDDING_MODEL=gemini-embedding-001
 ```
-
-**OpenAI:** just set `OPENAI_API_KEY=sk-…` and leave the rest unset.
 
 If the primary chat model is overloaded (429/503), the app automatically
 retries with fallback models — configurable via `CHAT_MODEL_FALLBACKS`.
