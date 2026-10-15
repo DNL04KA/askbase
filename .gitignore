@@ -43,3 +43,8 @@ next-env.d.ts
 # keep the env template in the repo
 !.env.example
 docs/
+
+# Local tooling
+.claude/
+CLAUDE.md
+AGENTS.md
